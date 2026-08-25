@@ -170,50 +170,50 @@ public class ChessGame {
 
         }
 
-
-
+        if(piece instanceof  Rook ||
+                piece instanceof Bishop ||
+                piece instanceof Queen)
+        {
+            if( !isPathClear( src,dest ))
+            {
+                return false;
+            }
+        }
 
         board.movePiece( src,dest );
         turn.switchTurn();
         return true;
     }
 
-
-    public boolean isPathClear(Position src,Position dest)
+    public boolean isPathClear(Position src, Position dest)
     {
-        int crow=src.getRow();
-        int ccol=src.getCol();
+        int crow = src.getRow();
+        int ccol = src.getCol();
 
-        int drow=dest.getRow();
-        int dcol=dest.getCol();
+        int drow = dest.getRow();
+        int dcol = dest.getCol();
 
-
-
-        Position curr=new Position( crow,ccol );
-
-        while ( crow!=drow || ccol!=dcol )
+        while (crow != drow || ccol != dcol)
         {
-            int rowStep=Integer.compare( drow,crow );
-            int colStep=Integer.compare( dcol,ccol );
+            int rowStep = Integer.compare(drow, crow);
+            int colStep = Integer.compare(dcol, ccol);
 
             crow += rowStep;
             ccol += colStep;
 
-            if(crow==drow && ccol==dcol)
+            // Don't check the destination here.
+            if (crow == drow && ccol == dcol)
             {
                 break;
             }
 
-            if(board.getPiece( curr ) != null)
+            // Check the current intermediate square.
+            if (board.getPiece(new Position(crow, ccol)) != null)
             {
                 return false;
             }
-
-
-            curr=new Position( crow,ccol );
-
         }
+
         return true;
     }
-
 }
