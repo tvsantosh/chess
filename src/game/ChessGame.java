@@ -1,0 +1,219 @@
+package game;
+
+import board.Board;
+import board.Position;
+import pieces.*;
+import player.Player;
+
+
+public class ChessGame {
+
+    private Board board;
+
+    private Turn turn;
+
+    private Player whitePlayer;
+
+    private Player blackPlayer;
+
+    public Board getBoard() {
+        return board;
+    }
+
+    public Turn getTurn() {
+        return turn;
+    }
+
+
+    public ChessGame()
+    {
+        board=new Board();
+        turn =new Turn();
+
+        whitePlayer = new Player( Color.WHITE );
+        blackPlayer = new Player( Color.BLACK );
+
+        setupBoard();
+    }
+    public void setupBoard() {
+
+        // =========================
+        // White Pieces----TOP
+        // =========================
+
+        //ROOK(ELEPHANT-LEFTSIDE)
+        Position pos = new Position(0, 0);
+        Rook whiteRook1 = new Rook(pos, Color.WHITE);
+        board.placePiece(pos, whiteRook1);
+
+        //KNIGHT(HORSE-LEFTSIDE)
+        pos = new Position(0, 1);
+        Knight whiteKnight1 = new Knight(pos, Color.WHITE);
+        board.placePiece(pos, whiteKnight1);
+
+        //BISHOP(CAMEL-LEFTSIDE)
+        pos = new Position(0, 2);
+        Bishop whiteBishop1 = new Bishop(pos, Color.WHITE);
+        board.placePiece(pos, whiteBishop1);
+
+        //QUEEN********************************************
+        pos = new Position(0, 3);
+        Queen whiteQueen = new Queen(pos, Color.WHITE);
+        board.placePiece(pos, whiteQueen);
+
+        //KING*********************************************
+        pos = new Position(0, 4);
+        King whiteKing = new King(pos, Color.WHITE);
+        board.placePiece(pos, whiteKing);
+
+        //BISHOP(CAMEL-RIGHTSIDE)
+        pos = new Position(0, 5);
+        Bishop whiteBishop2 = new Bishop(pos, Color.WHITE);
+        board.placePiece(pos, whiteBishop2);
+
+        //KNIGHT(HORSE-RIGHTSIDE)
+        pos = new Position(0, 6);
+        Knight whiteKnight2 = new Knight(pos, Color.WHITE);
+        board.placePiece(pos, whiteKnight2);
+
+        //ROOK(ELEPHANT-RIGHTSIDE)
+        pos = new Position(0, 7);
+        Rook whiteRook2 = new Rook(pos, Color.WHITE);
+        board.placePiece(pos, whiteRook2);
+
+
+        //PAWN(SOLDIER -WHITE)
+        for(int i=0;i<8;i++)
+        {
+            pos=new Position( 1,i );
+            Pawn pawn=new Pawn( pos,Color.WHITE );
+            board.placePiece( pos,pawn );
+        }
+
+
+        // =========================
+        // Black Pieces---DOWN
+        // =========================
+
+        //ROOK(ELEPHANT-LEFTSIDE)
+        pos = new Position(7, 0);
+        Rook blackRook1 = new Rook(pos, Color.BLACK);
+        board.placePiece(pos, blackRook1);
+
+        //KNIGHT(HORSE-LEFTSIDE)
+        pos = new Position(7, 1);
+        Knight blackKnight1 = new Knight(pos, Color.BLACK);
+        board.placePiece(pos, blackKnight1);
+
+        //BISHOP(CAMEL-LEFTSIDE)
+        pos = new Position(7, 2);
+        Bishop blackBishop1 = new Bishop(pos, Color.BLACK);
+        board.placePiece(pos, blackBishop1);
+
+        //QUEEN***************************************************
+        pos = new Position(7, 3);
+        Queen blackQueen = new Queen(pos, Color.BLACK);
+        board.placePiece(pos, blackQueen);
+
+        //KING****************************************************
+        pos = new Position(7, 4);
+        King blackKing = new King(pos, Color.BLACK);
+        board.placePiece(pos, blackKing);
+
+        //BISHOP(CAMEL-RIGHTSIDE)
+        pos = new Position(7, 5);
+        Bishop blackBishop2 = new Bishop(pos, Color.BLACK);
+        board.placePiece(pos, blackBishop2);
+
+        //KNIGHT(HORSE-RIGHTSIDE)
+        pos = new Position(7, 6);
+        Knight blackKnight2 = new Knight(pos, Color.BLACK);
+        board.placePiece(pos, blackKnight2);
+
+        //ROOK(ELEPHANT-RIGHTSIDE)
+        pos = new Position(7, 7);
+        Rook blackRook2 = new Rook(pos, Color.BLACK);
+        board.placePiece(pos, blackRook2);
+
+        //PAWN(SOLDIER -BLACK)
+        for(int i=0;i<8;i++)
+        {
+            pos=new Position( 6,i );
+            Pawn pan=new Pawn( pos,Color.BLACK );
+            board.placePiece( pos,pan );
+
+        }
+    }
+
+
+    public boolean move(Position src, Position dest)
+    {
+        if (!src.isValid() || !dest.isValid())
+        {
+            return false;
+        }
+
+        Piece piece = board.getPiece(src);
+
+        if (piece == null)
+        {
+            return false;
+        }
+
+        if (piece.getColor() != turn.getCurrentColor())
+        {
+            return false;
+        }
+        if(!piece.isValidMove( dest ))
+        {
+            return false;
+
+        }
+
+
+
+
+        board.movePiece( src,dest );
+        turn.switchTurn();
+        return true;
+    }
+
+
+    public boolean isPathClear(Position src,Position dest)
+    {
+        int crow=src.getRow();
+        int ccol=src.getCol();
+
+        int drow=dest.getRow();
+        int dcol=dest.getCol();
+
+
+
+        Position curr=new Position( crow,ccol );
+
+        while ( crow!=drow || ccol!=dcol )
+        {
+            int rowStep=Integer.compare( drow,crow );
+            int colStep=Integer.compare( dcol,ccol );
+
+            crow += rowStep;
+            ccol += colStep;
+
+            if(crow==drow && ccol==dcol)
+            {
+                break;
+            }
+
+            if(board.getPiece( curr ) != null)
+            {
+                return false;
+            }
+
+
+            curr=new Position( crow,ccol );
+
+        }
+        return true;
+    }
+
+}
