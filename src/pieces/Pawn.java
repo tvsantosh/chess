@@ -36,6 +36,13 @@ public class Pawn extends Piece {
                 return true;
             }
 
+            //Diagonal moment
+            if(drow==crow+1 && Math.abs( dcol-ccol )==1)
+            {
+                return true;
+
+            }
+
         } else {
 
             // One step forward
@@ -45,6 +52,12 @@ public class Pawn extends Piece {
 
             // Two steps forward from starting position
             if (crow == 6 && drow == crow - 2 && dcol == ccol) {
+                return true;
+            }
+
+            //Diagonal moment
+            if(drow==crow-1 && Math.abs( dcol-ccol )==1)
+            {
                 return true;
             }
         }

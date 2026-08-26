@@ -154,6 +154,8 @@ public class ChessGame {
         }
 
         Piece piece = board.getPiece(src);
+        Piece destpiece = board.getPiece(dest);
+
 
         if (piece == null)
         {
@@ -164,11 +166,60 @@ public class ChessGame {
         {
             return false;
         }
+
         if(!piece.isValidMove( dest ))
         {
             return false;
 
         }
+
+        if ( destpiece!=null && destpiece.getColor()==turn.getCurrentColor() )
+        {
+            return false;
+        }
+
+        if(piece instanceof Pawn)
+        {
+            int crow = src.getRow();
+            int ccol = src.getCol();
+
+            int drow = dest.getRow();
+            int dcol = dest.getCol();
+
+            // Pawn moving straight forward
+            if(dcol == ccol)
+            {
+                // Destination must be empty
+                if(destpiece != null)
+                {
+                    return false;
+                }
+
+                // Two-square move
+                if(Math.abs(drow - crow) == 2)
+                {
+                    int middleRow = (crow + drow) / 2;
+
+                    // Middle square must be empty
+                    if(board.getPiece(new Position(middleRow, ccol)) != null)
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            // Pawn moving diagonally
+            else if(Math.abs(dcol - ccol) == 1)
+            {
+                // Diagonal move must capture an enemy piece
+                if(destpiece == null)
+                {
+                    return false;
+                }
+            }
+        }
+
+
 
         if(piece instanceof  Rook ||
                 piece instanceof Bishop ||
@@ -180,6 +231,7 @@ public class ChessGame {
             }
         }
 
+        //Performe move
         board.movePiece( src,dest );
         turn.switchTurn();
         return true;

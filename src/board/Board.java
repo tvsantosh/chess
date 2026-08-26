@@ -31,8 +31,7 @@ public class Board {
     public void movePiece(Position src, Position dest)
     {
         if(src.isValid() && dest.isValid() &&
-                board[src.getRow()][src.getCol()] != null &&
-                board[dest.getRow()][dest.getCol()] == null)
+                board[src.getRow()][src.getCol()] != null )
         {
             Piece piece = board[src.getRow()][src.getCol()];
 
