@@ -22,10 +22,11 @@ public class King extends Piece{
         int drow=destination.getRow();
         int dcol=destination.getCol();
 
-        return (Math.abs( crow - drow )==0 && Math.abs( ccol - dcol )==1) ||
-                (Math.abs( crow-drow )==1 && Math.abs( ccol - dcol )==0) ||
-                (Math.abs( crow - drow )==1 && Math.abs( ccol - dcol )==1) &&
-                        !(crow==drow && ccol==dcol);
+        int rowDiff = Math.abs( crow - drow );
+        int colDiff = Math.abs( ccol - dcol );
+
+        // King moves exactly one square in any direction (but not staying in place)
+        return (rowDiff <= 1 && colDiff <= 1) && !(crow == drow && ccol == dcol);
     }
 
 

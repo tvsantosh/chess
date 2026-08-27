@@ -206,6 +206,8 @@ public class ChessGame {
                         return false;
                     }
                 }
+
+
             }
 
             // Pawn moving diagonally
@@ -231,10 +233,26 @@ public class ChessGame {
             }
         }
 
-        //Performe move
+
+        //Perform move temporarily
         board.movePiece( src,dest );
+        if(isKingInCheck( piece.getColor() ))
+        {
+            //undo the move
+            board.movePiece( dest,src );
+
+            // restore captured piece if there was one
+            if(destpiece != null)
+            {
+                board.placePiece( dest, destpiece );
+                destpiece.setPosition( dest );
+            }
+            return false;
+        }
+
         turn.switchTurn();
         return true;
+
     }
 
     public boolean isPathClear(Position src, Position dest)
@@ -290,7 +308,18 @@ public class ChessGame {
 
                 if (piece.getColor() != color)
                 {
-                    if (piece.isValidMove(kingpos))
+                    if (piece instanceof Pawn)
+                    {
+                        // Pawns only attack diagonally — never straight ahead
+                        int rowDiff = kingpos.getRow() - piece.getPosition().getRow();
+                        int colDiff = Math.abs(kingpos.getCol() - piece.getPosition().getCol());
+                        boolean correctDirection = (piece.getColor() == Color.WHITE) ? rowDiff == 1 : rowDiff == -1;
+                        if (correctDirection && colDiff == 1)
+                        {
+                            return true;
+                        }
+                    }
+                    else if (piece.isValidMove(kingpos))
                     {
                         if (piece instanceof Bishop ||
                                 piece instanceof Rook ||

@@ -22,8 +22,12 @@ public class Knight extends Piece {
         int drow=destination.getRow();
         int dcol=destination.getCol();
 
-        return  (Math.abs( drow-crow )==2 && Math.abs( dcol-ccol )==1) ||
-                (Math.abs( drow-crow )==1 && Math.abs( dcol-ccol )==2) && !(crow==drow && ccol==dcol);
+        return  (
+                (Math.abs( drow-crow )==2 && Math.abs( dcol-ccol )==1) ||
+                (Math.abs( drow-crow )==1 && Math.abs( dcol-ccol )==2)
+        ) &&
+                !(crow==drow && ccol==dcol);
+
 
     }
 }
