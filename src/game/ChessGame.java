@@ -268,4 +268,49 @@ public class ChessGame {
 
         return true;
     }
+    private boolean isKingInCheck(Color color)
+    {
+        Position kingpos = board.findKing(color);
+
+        if (kingpos == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < 8; i++)
+        {
+            for (int j = 0; j < 8; j++)
+            {
+                Piece piece = board.getPiece(i, j);
+
+                if (piece == null)
+                {
+                    continue;
+                }
+
+                if (piece.getColor() != color)
+                {
+                    if (piece.isValidMove(kingpos))
+                    {
+                        if (piece instanceof Bishop ||
+                                piece instanceof Rook ||
+                                piece instanceof Queen)
+                        {
+                            if (isPathClear(piece.getPosition(), kingpos))
+                            {
+                                return true;
+                            }
+                        }
+                        else
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
 }

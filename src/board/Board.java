@@ -1,5 +1,7 @@
 package board;
 
+import pieces.Color;
+import pieces.King;
 import pieces.Piece;
 
 public class Board {
@@ -30,21 +32,47 @@ public class Board {
 
     public void movePiece(Position src, Position dest)
     {
-        if(src.isValid() && dest.isValid() &&
-                board[src.getRow()][src.getCol()] != null )
+        if (src == null || dest == null ||
+                !src.isValid() || !dest.isValid())
         {
-            Piece piece = board[src.getRow()][src.getCol()];
-
-            if (!piece.isValidMove(dest)) {
-                return;
-            }
-
-            board[dest.getRow()][dest.getCol()] = piece;
-
-            piece.setPosition(dest);
-
-            board[src.getRow()][src.getCol()] = null;
+            return;
         }
+
+        Piece piece = board[src.getRow()][src.getCol()];
+
+        if (piece == null)
+        {
+            return;
+        }
+
+        board[dest.getRow()][dest.getCol()] = piece;
+
+        piece.setPosition(dest);
+
+        board[src.getRow()][src.getCol()] = null;
+    }
+
+
+    public Piece getPiece(int row,int col)
+    {
+        return board[row][col];
+    }
+
+    public Position findKing( Color color )
+    {
+        for(int i=0;i<8;i++)
+        {
+            for(int j=0;j<8;j++)
+            {
+                Piece piece=getPiece( i,j );
+
+                if(piece instanceof King && piece.getColor()==color)
+                {
+                    return piece.getPosition();
+                }
+            }
+        }
+        return null;
     }
 
 
