@@ -43,6 +43,8 @@ public class ChessGame {
 
         setupBoard();
     }
+
+    //Initialize the board
     public void setupBoard() {
 
         // =========================
@@ -342,7 +344,7 @@ public class ChessGame {
         return false;
     }
 
-    private void undoMove(Move move)
+    public void undoMove(Move move)
     {
         // your code here
 
@@ -354,5 +356,76 @@ public class ChessGame {
         }
 
     }
+
+
+    //O(4096)
+    public List<Move> getLegalMoves(Color color)
+    {
+        List<Move> legalMoves = new ArrayList<>();
+
+        for (int i = 0; i < 8; i++)
+        {
+            for (int j = 0; j < 8; j++)
+            {
+                Piece piece = board.getPiece(new Position(i, j));
+
+                if (piece == null)
+                {
+                    continue;
+                }
+
+                if (piece.getColor() != color)
+                {
+                    continue;
+                }
+
+                Position src = new Position(i, j);
+
+                // Try every destination
+                for (int r = 0; r < 8; r++)
+                {
+                    for (int c = 0; c < 8; c++)
+                    {
+                        Position dest = new Position(r, c);
+
+                        // Check piece movement
+                        if (!piece.isValidMove(dest))
+                        {
+                            continue;
+                        }
+
+                        // Check destination
+                        Piece destPiece = board.getPiece(dest);
+
+                        // Cannot capture own piece
+                        if (destPiece != null &&
+                                destPiece.getColor() == color)
+                        {
+                            continue;
+                        }
+
+                        // Sliding pieces need clear path
+                        if (piece instanceof Rook ||
+                                piece instanceof Bishop ||
+                                piece instanceof Queen)
+                        {
+                            if (!isPathClear(src, dest))
+                            {
+                                continue;
+                            }
+                        }
+
+                        // Valid candidate move
+                        Move move = new Move(src, dest, piece, destPiece);
+
+                        legalMoves.add(move);
+                    }
+                }
+            }
+        }
+
+        return legalMoves;
+    }
+
 
 }
