@@ -1,9 +1,13 @@
 package game;
 
 import board.Board;
+import board.Move;
 import board.Position;
 import pieces.*;
 import player.Player;
+
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class ChessGame {
@@ -15,6 +19,8 @@ public class ChessGame {
     private Player whitePlayer;
 
     private Player blackPlayer;
+
+    private List<Move> movehistory;
 
     public Board getBoard() {
         return board;
@@ -32,6 +38,8 @@ public class ChessGame {
 
         whitePlayer = new Player( Color.WHITE );
         blackPlayer = new Player( Color.BLACK );
+
+        movehistory=new ArrayList<>(  );
 
         setupBoard();
     }
@@ -234,19 +242,11 @@ public class ChessGame {
         }
 
 
-        //Perform move temporarily
-        board.movePiece( src,dest );
+        Move move = new Move(src, dest, piece, destpiece);
+        board.movePiece( src, dest );
         if(isKingInCheck( piece.getColor() ))
         {
-            //undo the move
-            board.movePiece( dest,src );
-
-            // restore captured piece if there was one
-            if(destpiece != null)
-            {
-                board.placePiece( dest, destpiece );
-                destpiece.setPosition( dest );
-            }
+            undoMove( move );
             return false;
         }
 
@@ -340,6 +340,19 @@ public class ChessGame {
         }
 
         return false;
+    }
+
+    private void undoMove(Move move)
+    {
+        // your code here
+
+        board.movePiece(move.getDestination(), move.getSource());
+
+        if(move.getPieceCaptured()!=null)
+        {
+            board.placePiece( move.getDestination(),move.getPieceCaptured() );
+        }
+
     }
 
 }

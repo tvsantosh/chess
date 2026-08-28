@@ -44,6 +44,10 @@ public class Board {
         {
             return;
         }
+        if(board[dest.getRow()][dest.getCol()]!=null)
+        {
+            removePiece( dest );
+        }
 
         board[dest.getRow()][dest.getCol()] = piece;
 
@@ -73,6 +77,13 @@ public class Board {
             }
         }
         return null;
+    }
+
+    public void removePiece(Position position)
+    {
+        if(position!=null && position.isValid( ))
+
+        board[position.getRow()][position.getCol()]=null;
     }
 
 
