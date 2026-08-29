@@ -288,7 +288,7 @@ public class ChessGame {
 
         return true;
     }
-    private boolean isKingInCheck(Color color)
+    public boolean isKingInCheck(Color color)
     {
         Position kingpos = board.findKing(color);
 
@@ -352,7 +352,14 @@ public class ChessGame {
 
         if(move.getPieceCaptured()!=null)
         {
+
+            Piece captured=move.getPieceCaptured();
+
+
+
             board.placePiece( move.getDestination(),move.getPieceCaptured() );
+
+            captured.setPosition( move.getDestination() );
         }
 
     }
@@ -469,5 +476,30 @@ public class ChessGame {
         return legalMoves;
     }
 
+    public GameStatus gameStatus()
+    {
+        Color currentColor=turn.getCurrentColor();
+
+        boolean inCheck=isKingInCheck( currentColor );
+
+        List<Move> leagalMove=getLegalMoves( currentColor );
+
+        if(inCheck && leagalMove.isEmpty())
+        {
+            return GameStatus.CHECKMATE;
+        }
+
+        if(!inCheck && leagalMove.isEmpty())
+        {
+            return GameStatus.STALEMATE;
+        }
+
+        if(inCheck)
+        {
+            return GameStatus.CHECK;
+        }
+
+        return GameStatus.ACTIVE;
+    }
 
 }
