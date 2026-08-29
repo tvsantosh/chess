@@ -37,7 +37,7 @@ public class Pawn extends Piece {
             }
 
             //Diagonal moment
-            if(drow==crow+1 && Math.abs( dcol-ccol )==1)
+            if((drow==crow+1 && Math.abs( dcol-ccol )==1) )
             {
                 return true;
 

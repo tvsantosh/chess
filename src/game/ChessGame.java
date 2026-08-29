@@ -404,6 +404,41 @@ public class ChessGame {
                             continue;
                         }
 
+                        // Pawn-specific board rules
+                        if (piece instanceof Pawn)
+                        {
+                            int crow = src.getRow();
+                            int ccol = src.getCol();
+                            int drow = dest.getRow();
+                            int dcol = dest.getCol();
+
+                            if (dcol == ccol)
+                            {
+                                // Straight push — destination must be empty
+                                if (destPiece != null)
+                                {
+                                    continue;
+                                }
+                                // Double push — middle square must also be empty
+                                if (Math.abs(drow - crow) == 2)
+                                {
+                                    int middleRow = (crow + drow) / 2;
+                                    if (board.getPiece(new Position(middleRow, ccol)) != null)
+                                    {
+                                        continue;
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                // Diagonal move — must capture an enemy piece
+                                if (destPiece == null)
+                                {
+                                    continue;
+                                }
+                            }
+                        }
+
                         // Sliding pieces need clear path
                         if (piece instanceof Rook ||
                                 piece instanceof Bishop ||
@@ -415,8 +450,15 @@ public class ChessGame {
                             }
                         }
 
-                        // Valid candidate move
+                        // Simulate the move and reject if it leaves own king in check
                         Move move = new Move(src, dest, piece, destPiece);
+                        board.movePiece(src, dest);
+                        boolean inCheck = isKingInCheck(color);
+                        undoMove(move);
+                        if (inCheck)
+                        {
+                            continue;
+                        }
 
                         legalMoves.add(move);
                     }
