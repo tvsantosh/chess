@@ -68,19 +68,19 @@ public class Move {
         return pieceCaptured;
     }
 
-    public boolean  isEnPassant()
+    public boolean isEnPassant()
     {
         return isEnPassant;
     }
-    public boolean  isCastling()
+    public boolean isCastling()
     {
         return isCastling;
     }
-    public boolean  isPromotion()
+    public boolean isPromotion()
     {
         return promotedTo != null;
     }
-    public Piece    getPromotedTo()
+    public Piece getPromotedTo()
     {
         return promotedTo;
     }
@@ -121,7 +121,9 @@ public class Move {
         this.rookDest   = rookDest;
     }
 
-    public void setHalfMoveClockBefore(int v) { this.halfMoveClockBefore = v; }
+    public void setHalfMoveClockBefore(int v) {
+        this.halfMoveClockBefore = v;
+    }
 
     // ── Human-readable label ─────────────────────────────────────────────────
     @Override

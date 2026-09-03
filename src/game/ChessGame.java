@@ -218,7 +218,7 @@ public class ChessGame {
             return false;
         }
 
-        // ── En passant ────────────────────────────────────────────────────────
+        // ── En passant ─────────
         boolean isEnPassant = false;
         Piece   epCaptured  = null;
         Position epSquare   = null;
@@ -661,7 +661,10 @@ public class ChessGame {
         for (int i = 0; i < 8; i++) {
             for (int j = 0; j < 8; j++) {
                 Piece p = board.getPiece(i, j);
-                if (p == null || p instanceof King) continue;
+                if (p == null || p instanceof King)
+                {
+                    continue;
+                }
                 if (p.getColor() == Color.WHITE)
                 {
                     white.add(p);
@@ -696,6 +699,7 @@ public class ChessGame {
         {
             Position wp = white.get(0).getPosition();
             Position bp = black.get(0).getPosition();
+
             boolean whiteBishopOnLight = (wp.getRow() + wp.getCol()) % 2 == 0;
             boolean blackBishopOnLight = (bp.getRow() + bp.getCol()) % 2 == 0;
             if (whiteBishopOnLight == blackBishopOnLight)
