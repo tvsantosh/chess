@@ -39,6 +39,8 @@ public class Move {
     // ── Fifty-move-rule snapshot ──────────────────────────────────────────────
     private int halfMoveClockBefore = 0;
 
+    private boolean pieceHadMovedBefore = false;
+
     // ─────────────────────────────────────────────────────────────────────────
     public Move(Position source,
                 Position destination,
@@ -123,6 +125,14 @@ public class Move {
 
     public void setHalfMoveClockBefore(int v) {
         this.halfMoveClockBefore = v;
+    }
+
+    public boolean hadMovedBefore() {
+        return pieceHadMovedBefore;
+    }
+
+    public void setPieceHadMovedBefore(boolean value) {
+        this.pieceHadMovedBefore = value;
     }
 
     // ── Human-readable label ─────────────────────────────────────────────────

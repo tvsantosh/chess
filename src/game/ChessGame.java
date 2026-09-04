@@ -262,6 +262,16 @@ public class ChessGame {
         Move move = new Move(src, dest, piece, destPiece);
         move.setHalfMoveClockBefore(halfMoveClock);
 
+
+        if (piece instanceof King) {
+            move.setPieceHadMovedBefore(((King) piece).hasMoved());
+        }
+
+        if (piece instanceof Rook) {
+            move.setPieceHadMovedBefore(((Rook) piece).hasMoved());
+        }
+
+
         // ── Apply move to board ───────────────────────────────────────────────
         if (isEnPassant) {
             board.removePiece(epSquare);         // remove captured pawn from its square
@@ -436,10 +446,13 @@ public class ChessGame {
             }
         }
 
-        // Restore hasMoved on the moving piece if it was a first move
-        // (we cannot fully restore this without extra tracking, so we leave it —
-        //  undoMove is only used internally during legal-move simulation,
-        //  not exposed as a full game-history undo)
+        if (piece instanceof King) {
+            ((King) piece).setHasMoved(move.hadMovedBefore());
+        }
+
+        if (piece instanceof Rook) {
+            ((Rook) piece).setHasMoved(move.hadMovedBefore());
+        }
     }
 
     // =========================================================================
@@ -733,4 +746,10 @@ public class ChessGame {
         }
         return true;
     }
+
+
+
+
+
+
 }
