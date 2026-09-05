@@ -44,6 +44,7 @@ public class Board {
         {
             return;
         }
+
         if(board[dest.getRow()][dest.getCol()]!=null)
         {
             removePiece( dest );

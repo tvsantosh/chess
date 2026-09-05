@@ -747,6 +747,114 @@ public class ChessGame {
         return true;
     }
 
+    //Simulation Move
+    public void simulationMove(Move move)
+    {
+        Position src=move.getSource();
+        Position dest=move.getDestination();
+
+        Piece piece=move.getPieceMoved();
+
+        // Normal capture
+        if(move.getPieceCaptured()!=null)
+        {
+            board.removePiece( dest );
+        }
+
+        // En passant
+        if(move.isEnPassant())
+        {
+            board.removePiece( move.getEnPassantSquare() );
+        }
+
+        // Move piece
+        board.movePiece( src,dest );
+
+        // Castling
+        if (move.isCastling()) {
+            board.movePiece(
+                    move.getRookSrc(),
+                    move.getRookDest()
+            );
+        }
+
+        // Promotion
+        if (move.isPromotion()) {
+            board.removePiece(dest);
+
+            board.placePiece(
+                    dest,
+                    move.getPromotedTo()
+            );
+        }
+    }
+
+    public void undoSimulation(Move move)
+    {
+        Position src=move.getSource();
+        Position dest=move.getDestination();
+
+        //undo promotion
+        if(move.isPromotion())
+        {
+            board.removePiece( dest );
+
+            board.placePiece(
+                    src,
+                    move.getPieceMoved()
+            );
+
+        }
+        else
+        {
+            // Move piece back
+            board.movePiece( dest,src );
+        }
+
+        // Restore normal captured piece
+        if(move.getPieceCaptured()!=null)
+        {
+            board.placePiece(
+                    dest,
+                    move.getPieceCaptured()
+            );
+        }
+        // Restore en passant captured pawn
+        if(move.isEnPassant())
+        {
+            board.placePiece(
+                    move.getEnPassantSquare(),
+                    move.getPieceCaptured()
+            );
+        }
+
+        //undo castling
+        if(move.isCastling())
+        {
+            board.movePiece(
+                    move.getRookDest(),
+                    move.getRookSrc()
+            );
+        }
+
+        // Restore King/Rook moved state
+        Piece piece=move.getPieceMoved();
+
+        if(piece instanceof King)
+        {
+            ((King)piece).setHasMoved(
+                    move.hadMovedBefore()
+            );
+        }
+
+        if(piece instanceof Rook)
+        {
+            ((Rook)piece).setHasMoved(
+                    move.hadMovedBefore()
+            );
+        }
+    }
+
 
 
 

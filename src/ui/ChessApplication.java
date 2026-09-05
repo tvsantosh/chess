@@ -8,15 +8,19 @@ import game.GameStatus;
 import pieces.*;
 
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ToggleButton;
+import javafx.scene.control.ToggleGroup;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
@@ -27,15 +31,22 @@ import java.util.List;
 public class ChessApplication extends Application {
 
     // ── Game state ────────────────────────────────────────────────────────────
-    private ChessGame      game;
-    private Position       selectedPosition;
-    private List<Move>     legalMovesCache = new ArrayList<>();
+    private ChessGame    game;
+    private ChessAi      chessAi;
+    private Position     selectedPosition;
+    private List<Move>   legalMovesCache = new ArrayList<>();
+
+    // ── Mode: true = Human vs AI,  false = Human vs Human ────────────────────
+    private boolean      vsAI = false;
+
+    // ── Prevent clicks while AI is thinking ───────────────────────────────────
+    private boolean      aiThinking = false;
 
     // ── UI components ─────────────────────────────────────────────────────────
-    private GridPane       chessBoard;
-    private Label          turnLabel;
-    private Label          statusLabel;
-    private Label          moveHistoryLabel;
+    private GridPane         chessBoard;
+    private Label            turnLabel;
+    private Label            statusLabel;
+    private Label            moveHistoryLabel;
     private final Button[][] boardButtons = new Button[8][8];
 
     // ── Square colors ─────────────────────────────────────────────────────────
@@ -48,8 +59,6 @@ public class ChessApplication extends Application {
     // ── Coordinate conversion ─────────────────────────────────────────────────
     // Game row 0 = White's back rank (bottom). UI row 0 = top of screen.
     private static int toGameRow(int uiRow) { return 7 - uiRow; }
-    //CHESSAI
-    private ChessAi chessAi;
 
     // =========================================================================
     // START
@@ -57,15 +66,14 @@ public class ChessApplication extends Application {
 
     @Override
     public void start(Stage stage) {
-        game = new ChessGame();
+        game    = new ChessGame();
+        chessAi = new ChessAi();
 
-        chessAi=new ChessAi();
-
-        // ── Top ───────────────────────────────────────────────────────────────
+        // ── Top: title + turn label ───────────────────────────────────────────
         Label title = new Label("JAVA CHESS");
         title.setFont(Font.font("Arial", 28));
 
-        turnLabel = new Label();
+        turnLabel = new Label("WHITE's Turn");
         turnLabel.setFont(Font.font("Arial", 18));
 
         VBox top = new VBox(6, title, turnLabel);
@@ -77,22 +85,50 @@ public class ChessApplication extends Application {
         chessBoard.setAlignment(Pos.CENTER);
         buildBoard();
 
-        // ── Bottom ────────────────────────────────────────────────────────────
-        statusLabel = new Label();
+        // ── Bottom controls ───────────────────────────────────────────────────
+        statusLabel = new Label("Select a mode and press New Game");
         statusLabel.setFont(Font.font("Arial", 14));
 
         moveHistoryLabel = new Label("Move history: —");
         moveHistoryLabel.setFont(Font.font("Arial", 12));
 
+        // Mode toggle: Human vs Human  |  Human vs AI
+        ToggleGroup modeGroup  = new ToggleGroup();
+
+        ToggleButton hvhButton = new ToggleButton("👥  Human vs Human");
+        hvhButton.setFont(Font.font("Arial", 13));
+        hvhButton.setToggleGroup(modeGroup);
+        hvhButton.setSelected(true);   // default
+        hvhButton.setOnAction(e -> {
+            vsAI = false;
+            statusLabel.setText("Mode: Human vs Human — press New Game");
+        });
+
+        ToggleButton hvaiButton = new ToggleButton("🤖  Human vs AI");
+        hvaiButton.setFont(Font.font("Arial", 13));
+        hvaiButton.setToggleGroup(modeGroup);
+        hvaiButton.setOnAction(e -> {
+            vsAI = true;
+            statusLabel.setText("Mode: Human vs AI (you play White) — press New Game");
+        });
+
+        // Style the toggle buttons
+        String toggleBase = "-fx-background-radius:5; -fx-border-radius:5;";
+        hvhButton.setStyle(toggleBase);
+        hvaiButton.setStyle(toggleBase);
+
+        HBox modeBox = new HBox(8, hvhButton, hvaiButton);
+        modeBox.setAlignment(Pos.CENTER);
+
         Button newGameButton = new Button("New Game");
         newGameButton.setFont(Font.font("Arial", 14));
         newGameButton.setOnAction(e -> resetGame());
 
-        VBox bottom = new VBox(6, statusLabel, moveHistoryLabel, newGameButton);
+        VBox bottom = new VBox(8, modeBox, newGameButton, statusLabel, moveHistoryLabel);
         bottom.setAlignment(Pos.CENTER);
-        bottom.setPadding(new Insets(10, 0, 0, 0));
+        bottom.setPadding(new Insets(10, 0, 6, 0));
 
-        // ── Layout ────────────────────────────────────────────────────────────
+        // ── Root layout ───────────────────────────────────────────────────────
         BorderPane root = new BorderPane();
         root.setPadding(new Insets(10));
         root.setTop(top);
@@ -100,48 +136,25 @@ public class ChessApplication extends Application {
         root.setBottom(bottom);
 
         stage.setTitle("Java Chess");
-        stage.setScene(new Scene(root, 760, 850));
+        stage.setScene(new Scene(root, 760, 900));
         stage.setResizable(false);
         stage.show();
 
         refreshBoard();
-        statusLabel.setText("Game started — " + legalMoveCount() + " legal moves");
     }
 
     // =========================================================================
     // BUILD BOARD
     // =========================================================================
 
-    private void makeAIMove()
-    {
-        Move aiMove=chessAi.findMove( game,Color.BLACK );
-        if(aiMove==null)
-        {
-            checkTerminalState();
-            return;
-        }
-        game.move( aiMove.getSource() , aiMove.getDestination() );
-
-        refreshBoard();
-
-        updateMoveHistoryLabel();
-
-        checkTerminalState();
-
-        statusLabel.setText( "AI played"+aiMove );
-
-    }
-
-
     private void buildBoard() {
         chessBoard.getChildren().clear();
 
-        // Clear button cache
         for (int r = 0; r < 8; r++)
             for (int c = 0; c < 8; c++)
                 boardButtons[r][c] = null;
 
-        // Rank labels (8 → 1 top to bottom)
+        // Rank labels  8 → 1
         for (int uiRow = 0; uiRow < 8; uiRow++) {
             Label rank = new Label(" " + (8 - uiRow) + " ");
             rank.setFont(Font.font("Arial", 14));
@@ -153,23 +166,23 @@ public class ChessApplication extends Application {
         // Squares
         for (int uiRow = 0; uiRow < 8; uiRow++) {
             for (int col = 0; col < 8; col++) {
-                Button square = new Button();
-                square.setPrefSize(80, 80);
-                square.setMinSize(80, 80);
-                square.setMaxSize(80, 80);
-                square.setFocusTraversable(false);
-                applyBaseColor(square, uiRow, col);
+                Button sq = new Button();
+                sq.setPrefSize(80, 80);
+                sq.setMinSize(80, 80);
+                sq.setMaxSize(80, 80);
+                sq.setFocusTraversable(false);
+                applyBaseColor(sq, uiRow, col);
 
                 final int r = uiRow, c = col;
-                square.setOnAction(e -> handleSquareClick(r, c));
+                sq.setOnAction(e -> handleSquareClick(r, c));
 
-                boardButtons[uiRow][col] = square;
-                chessBoard.add(square, col + 1, uiRow);
+                boardButtons[uiRow][col] = sq;
+                chessBoard.add(sq, col + 1, uiRow);
             }
         }
 
-        // File labels (a → h)
-        String[] files = {"a", "b", "c", "d", "e", "f", "g", "h"};
+        // File labels  a → h
+        String[] files = {"a","b","c","d","e","f","g","h"};
         for (int col = 0; col < 8; col++) {
             Label file = new Label(" " + files[col] + " ");
             file.setFont(Font.font("Arial", 14));
@@ -217,11 +230,22 @@ public class ChessApplication extends Application {
     // =========================================================================
 
     private void handleSquareClick(int uiRow, int col) {
+        // Block input while AI is thinking or game is over
+        if (aiThinking) return;
+        GameStatus status = game.gameStatus();
+        if (status == GameStatus.CHECKMATE
+                || status == GameStatus.STALEMATE
+                || status == GameStatus.DRAW_FIFTY_MOVE
+                || status == GameStatus.DRAW_INSUFFICIENT_MATERIAL) return;
+
+        // In AI mode, only allow White (human) to click
+        if (vsAI && game.getTurn().getCurrentColor() == Color.BLACK) return;
+
         int      gameRow = toGameRow(uiRow);
         Position clicked = new Position(gameRow, col);
         Piece    piece   = game.getBoard().getPiece(clicked);
 
-        // Nothing selected yet
+        // ── Nothing selected yet ──────────────────────────────────────────────
         if (selectedPosition == null) {
             if (piece == null) {
                 statusLabel.setText("Select a piece first.");
@@ -237,7 +261,7 @@ public class ChessApplication extends Application {
             return;
         }
 
-        // Click same square → deselect
+        // ── Click same square → deselect ──────────────────────────────────────
         if (samePosition(selectedPosition, clicked)) {
             selectedPosition = null;
             refreshBoard();
@@ -245,17 +269,28 @@ public class ChessApplication extends Application {
             return;
         }
 
-        // Try to move
+        // ── Try to move ───────────────────────────────────────────────────────
         boolean moved = game.move(selectedPosition, clicked);
         if (moved) {
             selectedPosition = null;
             refreshBoard();
             Move last = game.getLastMove();
-            if (last != null) statusLabel.setText("Played: " + last);
+            if (last != null) statusLabel.setText("You played: " + last);
             updateMoveHistoryLabel();
-            checkTerminalState();
+
+            // Check terminal state before triggering AI
+            if (isGameOver()) {
+                checkTerminalState();
+                return;
+            }
+
+            // In AI mode, trigger AI response on a background thread
+            if (vsAI) {
+                triggerAIMove();
+            }
+
         } else {
-            // Re-select if clicking another own piece
+            // Re-select if the click landed on another own piece
             if (piece != null && piece.getColor() == game.getTurn().getCurrentColor()) {
                 selectedPosition = clicked;
                 refreshBoard();
@@ -264,6 +299,46 @@ public class ChessApplication extends Application {
                 statusLabel.setText("Illegal move.");
             }
         }
+    }
+
+    // =========================================================================
+    // AI MOVE  — runs on a background thread, updates UI on FX thread
+    // =========================================================================
+
+    private void triggerAIMove() {
+        aiThinking = true;
+        setBoardDisabled(true);
+        turnLabel.setText("AI is thinking…");
+
+        Thread aiThread = new Thread(() -> {
+            // Compute best move off the FX thread so UI stays responsive
+            Move aiMove = chessAi.findMove(game, Color.BLACK);
+
+            // Return to FX thread to apply the move and refresh UI
+            Platform.runLater(() -> {
+                aiThinking = false;
+                setBoardDisabled(false);
+
+                if (aiMove == null) {
+                    // No legal moves for AI — terminal state
+                    checkTerminalState();
+                    return;
+                }
+
+                game.move(aiMove.getSource(), aiMove.getDestination());
+                refreshBoard();
+                updateMoveHistoryLabel();
+
+                Move last = game.getLastMove();
+                if (last != null) statusLabel.setText("AI played: " + last);
+
+                checkTerminalState();
+            });
+        });
+
+        aiThread.setDaemon(true);   // don't block JVM shutdown
+        aiThread.setName("chess-ai");
+        aiThread.start();
     }
 
     // =========================================================================
@@ -278,27 +353,27 @@ public class ChessApplication extends Application {
         for (int uiRow = 0; uiRow < 8; uiRow++) {
             for (int col = 0; col < 8; col++) {
                 int    gameRow = toGameRow(uiRow);
-                Button square  = boardButtons[uiRow][col];
-                if (square == null) continue;
+                Button sq      = boardButtons[uiRow][col];
+                if (sq == null) continue;
 
-                applyBaseColor(square, uiRow, col);
+                applyBaseColor(sq, uiRow, col);
 
                 Piece piece = game.getBoard().getPiece(new Position(gameRow, col));
-                square.setText("");
-                square.setGraphic(piece != null ? getPieceImage(piece) : null);
+                sq.setText("");
+                sq.setGraphic(piece != null ? getPieceImage(piece) : null);
 
-                // Selected square
+                // Selected square highlight
                 if (selectedPosition != null
                         && gameRow == selectedPosition.getRow()
                         && col    == selectedPosition.getCol()) {
-                    square.setStyle("-fx-background-color:" + SELECTED_COLOR
+                    sq.setStyle("-fx-background-color:" + SELECTED_COLOR
                             + ";-fx-border-color:#555;-fx-border-width:3;");
                     continue;
                 }
 
-                // Legal destination
+                // Legal destination highlight
                 if (isLegalDestination(gameRow, col)) {
-                    square.setStyle("-fx-background-color:"
+                    sq.setStyle("-fx-background-color:"
                             + (piece != null ? CAPTURE_COLOR : LEGAL_COLOR) + ";");
                 }
             }
@@ -311,13 +386,21 @@ public class ChessApplication extends Application {
     // TERMINAL STATE
     // =========================================================================
 
+    private boolean isGameOver() {
+        GameStatus s = game.gameStatus();
+        return s == GameStatus.CHECKMATE
+                || s == GameStatus.STALEMATE
+                || s == GameStatus.DRAW_FIFTY_MOVE
+                || s == GameStatus.DRAW_INSUFFICIENT_MATERIAL;
+    }
+
     private void checkTerminalState() {
         GameStatus status = game.gameStatus();
         switch (status) {
             case CHECKMATE -> {
                 Color winner = game.getTurn().getCurrentColor() == Color.WHITE
                         ? Color.BLACK : Color.WHITE;
-                statusLabel.setText("CHECKMATE! " + winner + " wins!");
+                statusLabel.setText("CHECKMATE!  " + winner + " wins! 🎉");
                 turnLabel.setText("Game Over");
             }
             case STALEMATE -> {
@@ -343,15 +426,18 @@ public class ChessApplication extends Application {
     // =========================================================================
 
     private void updateTurnLabel() {
+        if (aiThinking) return;   // label already set to "AI is thinking…"
         GameStatus status = game.gameStatus();
-        if (status == GameStatus.CHECK) {
-            turnLabel.setText(game.getTurn().getCurrentColor() + "'s Turn  *** CHECK ***");
-        } else if (status == GameStatus.CHECKMATE || status == GameStatus.STALEMATE
-                || status == GameStatus.DRAW_FIFTY_MOVE
-                || status == GameStatus.DRAW_INSUFFICIENT_MATERIAL) {
-            turnLabel.setText("Game Over");
-        } else {
-            turnLabel.setText(game.getTurn().getCurrentColor() + "'s Turn");
+        switch (status) {
+            case CHECK ->
+                turnLabel.setText(game.getTurn().getCurrentColor() + "'s Turn  *** CHECK ***");
+            case CHECKMATE, STALEMATE, DRAW_FIFTY_MOVE, DRAW_INSUFFICIENT_MATERIAL ->
+                turnLabel.setText("Game Over");
+            default -> {
+                Color c = game.getTurn().getCurrentColor();
+                String who = (vsAI && c == Color.BLACK) ? "AI (BLACK)" : c + "'s Turn";
+                turnLabel.setText(who);
+            }
         }
     }
 
@@ -360,13 +446,16 @@ public class ChessApplication extends Application {
     // =========================================================================
 
     private void resetGame() {
+        // If AI thread is running, let it finish then ignore its result
+        aiThinking = false;
         game             = new ChessGame();
         selectedPosition = null;
         legalMovesCache  = new ArrayList<>();
         moveHistoryLabel.setText("Move history: —");
         buildBoard();
         refreshBoard();
-        statusLabel.setText("New game started — " + legalMoveCount() + " legal moves");
+        String mode = vsAI ? "Human (White) vs AI (Black)" : "Human vs Human";
+        statusLabel.setText("New game — " + mode + "  |  " + legalMoveCount() + " legal moves");
     }
 
     // =========================================================================
@@ -392,6 +481,14 @@ public class ChessApplication extends Application {
     // HELPERS
     // =========================================================================
 
+    /** Enables or disables all board squares (used while AI is thinking). */
+    private void setBoardDisabled(boolean disabled) {
+        for (int r = 0; r < 8; r++)
+            for (int c = 0; c < 8; c++)
+                if (boardButtons[r][c] != null)
+                    boardButtons[r][c].setDisable(disabled);
+    }
+
     private boolean isLegalDestination(int gameRow, int col) {
         if (selectedPosition == null) return false;
         for (Move m : legalMovesCache) {
@@ -407,9 +504,9 @@ public class ChessApplication extends Application {
         return a.getRow() == b.getRow() && a.getCol() == b.getCol();
     }
 
-    private void applyBaseColor(Button square, int uiRow, int col) {
+    private void applyBaseColor(Button sq, int uiRow, int col) {
         String color = (uiRow + col) % 2 == 0 ? LIGHT_COLOR : DARK_COLOR;
-        square.setStyle("-fx-background-color:" + color + ";");
+        sq.setStyle("-fx-background-color:" + color + ";");
     }
 
     private String getPieceName(Piece piece) {
