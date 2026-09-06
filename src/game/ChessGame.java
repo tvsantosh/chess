@@ -824,7 +824,7 @@ public class ChessGame {
         {
             board.placePiece(
                     move.getEnPassantSquare(),
-                    move.getPieceCaptured()
+                    move.getEnPassantCaptured()
             );
         }
 

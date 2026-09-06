@@ -68,6 +68,7 @@ public class ChessApplication extends Application {
     public void start(Stage stage) {
         game    = new ChessGame();
         chessAi = new ChessAi();
+        loadImages();
 
         // ── Top: title + turn label ───────────────────────────────────────────
         Label title = new Label("JAVA CHESS");
@@ -140,12 +141,28 @@ public class ChessApplication extends Application {
         stage.setResizable(false);
         stage.show();
 
-        refreshBoard();
+        refreshBoard(GameStatus.ACTIVE);
     }
 
     // =========================================================================
-    // BUILD BOARD
+    // PIECE IMAGES
     // =========================================================================
+
+    private ImageView getPieceImage(Piece piece) {
+        if (piece == null) return null;
+        String key = imageKey(piece);
+        if (key == null) return null;
+        Image img = imageCache.get(key);
+        if (img == null) return null;
+        // Create a new ImageView wrapper each time (lightweight),
+        // but reuse the same underlying Image object (the expensive part)
+        ImageView iv = new ImageView(img);
+        iv.setFitWidth(62);
+        iv.setFitHeight(62);
+        iv.setPreserveRatio(true);
+        iv.setSmooth(true);
+        return iv;
+    }
 
     private void buildBoard() {
         chessBoard.getChildren().clear();
@@ -192,37 +209,45 @@ public class ChessApplication extends Application {
         }
     }
 
-    // =========================================================================
-    // PIECE IMAGES
-    // =========================================================================
+    // ── Image cache — loaded once at startup ──────────────────────────────────
+    private final java.util.Map<String, Image> imageCache = new java.util.HashMap<>();
 
-    private ImageView getPieceImage(Piece piece) {
-        if (piece == null) return null;
-
-        boolean white  = piece.getColor() == Color.WHITE;
-        String  folder = white ? "/resources/whitepieces/" : "/resources/blackpieces/";
-        String  file;
-
-        if      (piece instanceof King)   file = white ? "white_king.png"   : "black_king.png";
-        else if (piece instanceof Queen)  file = white ? "white_queen.png"  : "black_queen.png";
-        else if (piece instanceof Rook)   file = white ? "white_rook.png"   : "black_rook.png";
-        else if (piece instanceof Bishop) file = white ? "white_bishop.png" : "black_bishop.png";
-        else if (piece instanceof Knight) file = white ? "white_knight.png" : "black_knight.png";
-        else if (piece instanceof Pawn)   file = white ? "white_pawn.png"   : "black_pawn.png";
-        else return null;
-
-        var stream = getClass().getResourceAsStream(folder + file);
-        if (stream == null) {
-            System.err.println("Image not found: " + folder + file);
-            return null;
+    private void loadImages() {
+        String[][] entries = {
+            {"WHITE_KING",   "/resources/whitepieces/white_king.png"},
+            {"WHITE_QUEEN",  "/resources/whitepieces/white_queen.png"},
+            {"WHITE_ROOK",   "/resources/whitepieces/white_rook.png"},
+            {"WHITE_BISHOP", "/resources/whitepieces/white_bishop.png"},
+            {"WHITE_KNIGHT", "/resources/whitepieces/white_knight.png"},
+            {"WHITE_PAWN",   "/resources/whitepieces/white_pawn.png"},
+            {"BLACK_KING",   "/resources/blackpieces/black_king.png"},
+            {"BLACK_QUEEN",  "/resources/blackpieces/black_queen.png"},
+            {"BLACK_ROOK",   "/resources/blackpieces/black_rook.png"},
+            {"BLACK_BISHOP", "/resources/blackpieces/black_bishop.png"},
+            {"BLACK_KNIGHT", "/resources/blackpieces/black_knight.png"},
+            {"BLACK_PAWN",   "/resources/blackpieces/black_pawn.png"},
+        };
+        for (String[] entry : entries) {
+            var stream = getClass().getResourceAsStream(entry[1]);
+            if (stream != null) {
+                imageCache.put(entry[0], new Image(stream));
+            } else {
+                System.err.println("Image not found: " + entry[1]);
+            }
         }
+    }
 
-        ImageView iv = new ImageView(new Image(stream));
-        iv.setFitWidth(62);
-        iv.setFitHeight(62);
-        iv.setPreserveRatio(true);
-        iv.setSmooth(true);
-        return iv;
+    private String imageKey(Piece piece) {
+        String color = piece.getColor() == Color.WHITE ? "WHITE" : "BLACK";
+        String type;
+        if      (piece instanceof King)   type = "KING";
+        else if (piece instanceof Queen)  type = "QUEEN";
+        else if (piece instanceof Rook)   type = "ROOK";
+        else if (piece instanceof Bishop) type = "BISHOP";
+        else if (piece instanceof Knight) type = "KNIGHT";
+        else if (piece instanceof Pawn)   type = "PAWN";
+        else return null;
+        return color + "_" + type;
     }
 
     // =========================================================================
@@ -232,7 +257,10 @@ public class ChessApplication extends Application {
     private void handleSquareClick(int uiRow, int col) {
         // Block input while AI is thinking or game is over
         if (aiThinking) return;
+
+        // Compute status once for this entire interaction
         GameStatus status = game.gameStatus();
+
         if (status == GameStatus.CHECKMATE
                 || status == GameStatus.STALEMATE
                 || status == GameStatus.DRAW_FIFTY_MOVE
@@ -256,7 +284,7 @@ public class ChessApplication extends Application {
                 return;
             }
             selectedPosition = clicked;
-            refreshBoard();
+            refreshBoard(status);
             statusLabel.setText("Selected " + getPieceName(piece) + " at " + squareLabel(clicked));
             return;
         }
@@ -264,7 +292,7 @@ public class ChessApplication extends Application {
         // ── Click same square → deselect ──────────────────────────────────────
         if (samePosition(selectedPosition, clicked)) {
             selectedPosition = null;
-            refreshBoard();
+            refreshBoard(status);
             statusLabel.setText("Piece deselected.");
             return;
         }
@@ -273,27 +301,26 @@ public class ChessApplication extends Application {
         boolean moved = game.move(selectedPosition, clicked);
         if (moved) {
             selectedPosition = null;
-            refreshBoard();
+            // Status changed — recompute once after the move
+            GameStatus newStatus = game.gameStatus();
+            refreshBoard(newStatus);
             Move last = game.getLastMove();
             if (last != null) statusLabel.setText("You played: " + last);
             updateMoveHistoryLabel();
 
-            // Check terminal state before triggering AI
-            if (isGameOver()) {
-                checkTerminalState();
+            if (isTerminal(newStatus)) {
+                applyTerminalLabel(newStatus);
                 return;
             }
 
-            // In AI mode, trigger AI response on a background thread
             if (vsAI) {
                 triggerAIMove();
             }
-
         } else {
             // Re-select if the click landed on another own piece
             if (piece != null && piece.getColor() == game.getTurn().getCurrentColor()) {
                 selectedPosition = clicked;
-                refreshBoard();
+                refreshBoard(status);
                 statusLabel.setText("Selected " + getPieceName(piece) + " at " + squareLabel(clicked));
             } else {
                 statusLabel.setText("Illegal move.");
@@ -311,32 +338,37 @@ public class ChessApplication extends Application {
         turnLabel.setText("AI is thinking…");
 
         Thread aiThread = new Thread(() -> {
-            // Compute best move off the FX thread so UI stays responsive
             Move aiMove = chessAi.findMove(game, Color.BLACK);
 
-            // Return to FX thread to apply the move and refresh UI
             Platform.runLater(() -> {
                 aiThinking = false;
                 setBoardDisabled(false);
 
                 if (aiMove == null) {
-                    // No legal moves for AI — terminal state
-                    checkTerminalState();
+                    GameStatus s = game.gameStatus();
+                    applyTerminalLabel(s);
                     return;
                 }
 
                 game.move(aiMove.getSource(), aiMove.getDestination());
-                refreshBoard();
+
+                // Compute status once after AI move
+                GameStatus newStatus = game.gameStatus();
+                refreshBoard(newStatus);
                 updateMoveHistoryLabel();
 
                 Move last = game.getLastMove();
                 if (last != null) statusLabel.setText("AI played: " + last);
 
-                checkTerminalState();
+                if (isTerminal(newStatus)) {
+                    applyTerminalLabel(newStatus);
+                } else if (newStatus == GameStatus.CHECK) {
+                    statusLabel.setText(game.getTurn().getCurrentColor() + " is in CHECK!");
+                }
             });
         });
 
-        aiThread.setDaemon(true);   // don't block JVM shutdown
+        aiThread.setDaemon(true);
         aiThread.setName("chess-ai");
         aiThread.start();
     }
@@ -345,7 +377,7 @@ public class ChessApplication extends Application {
     // REFRESH BOARD
     // =========================================================================
 
-    private void refreshBoard() {
+    private void refreshBoard(GameStatus status) {
         legalMovesCache = (selectedPosition != null)
                 ? game.getLegalMoves(game.getTurn().getCurrentColor())
                 : new ArrayList<>();
@@ -379,23 +411,19 @@ public class ChessApplication extends Application {
             }
         }
 
-        updateTurnLabel();
+        updateTurnLabel(status);
     }
 
-    // =========================================================================
-    // TERMINAL STATE
-    // =========================================================================
+    // ── terminal helpers ──────────────────────────────────────────────────────
 
-    private boolean isGameOver() {
-        GameStatus s = game.gameStatus();
+    private boolean isTerminal(GameStatus s) {
         return s == GameStatus.CHECKMATE
                 || s == GameStatus.STALEMATE
                 || s == GameStatus.DRAW_FIFTY_MOVE
                 || s == GameStatus.DRAW_INSUFFICIENT_MATERIAL;
     }
 
-    private void checkTerminalState() {
-        GameStatus status = game.gameStatus();
+    private void applyTerminalLabel(GameStatus status) {
         switch (status) {
             case CHECKMATE -> {
                 Color winner = game.getTurn().getCurrentColor() == Color.WHITE
@@ -415,8 +443,6 @@ public class ChessApplication extends Application {
                 statusLabel.setText("DRAW — Insufficient material");
                 turnLabel.setText("Game Over");
             }
-            case CHECK ->
-                statusLabel.setText(game.getTurn().getCurrentColor() + " is in CHECK!");
             default -> {}
         }
     }
@@ -425,9 +451,8 @@ public class ChessApplication extends Application {
     // TURN LABEL
     // =========================================================================
 
-    private void updateTurnLabel() {
-        if (aiThinking) return;   // label already set to "AI is thinking…"
-        GameStatus status = game.gameStatus();
+    private void updateTurnLabel(GameStatus status) {
+        if (aiThinking) return;
         switch (status) {
             case CHECK ->
                 turnLabel.setText(game.getTurn().getCurrentColor() + "'s Turn  *** CHECK ***");
@@ -453,7 +478,7 @@ public class ChessApplication extends Application {
         legalMovesCache  = new ArrayList<>();
         moveHistoryLabel.setText("Move history: —");
         buildBoard();
-        refreshBoard();
+        refreshBoard(GameStatus.ACTIVE);
         String mode = vsAI ? "Human (White) vs AI (Black)" : "Human vs Human";
         statusLabel.setText("New game — " + mode + "  |  " + legalMoveCount() + " legal moves");
     }

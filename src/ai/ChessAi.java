@@ -38,7 +38,7 @@ public class ChessAi {
                     aiColor
             );
 
-            game.undoMove( move );
+            game.undoSimulation( move );
 
             if(score>bestScore)
             {
